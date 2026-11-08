@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import path from 'node:path'
 import { after, before, test } from 'node:test'
 import type { Client } from '@modelcontextprotocol/client'
-import { call, removeHome, startStdio, tempHome, unwrap } from './helpers.ts'
+import { call, readUntil, removeHome, startStdio, tempHome, unwrap } from './helpers.ts'
 
 let client: Client
 let home = ''
@@ -18,12 +18,18 @@ after(async () => {
 })
 
 test('powershell shell mode returns plain text', { skip: process.platform !== 'win32' }, async () => {
-  const result = unwrap(await call(client, 'exec', {
+  const started = unwrap(await call(client, 'exec', {
     mode: 'shell',
     interpreter: 'powershell',
     script: "Write-Output 'hello-only'\nWrite-Output '中文'",
     timeout: 20000,
   }))
+  const result = await readUntil(client, started, (body) => {
+    const status = String(body.status)
+    const done = status === 'finished' || status === 'failed'
+    const text = String(body.text ?? '')
+    return done && /hello-only/.test(text) && /中文/.test(text)
+  })
   assert.equal(result.text.includes('#< CLIXML'), false)
   assert.equal(result.text.includes('<Objs'), false)
   assert.match(result.text, /hello-only/)

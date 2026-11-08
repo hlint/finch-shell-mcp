@@ -5,7 +5,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { after, before, test } from 'node:test'
 import type { Client } from '@modelcontextprotocol/client'
-import { call, removeHome, startStdio, tempHome, unwrap, type ToolBody } from './helpers.ts'
+import { call, readUntil, removeHome, startStdio, tempHome, unwrap, type ToolBody } from './helpers.ts'
 
 let client: Client
 let home = ''
@@ -46,24 +46,26 @@ async function commandLines(marker: string): Promise<string> {
 }
 
 test('T-R-01 PowerShell output has no CLIXML', { skip: process.platform !== 'win32' }, async () => {
-  const result = unwrap(await call(client, 'exec', {
+  const started = unwrap(await call(client, 'exec', {
     mode: 'shell',
     interpreter: 'powershell',
     script: "Write-Output 'hello-only'",
     timeout: 20000,
   }))
+  const result = await readUntil(client, started, (body) => /hello-only/.test(String(body.text ?? '')))
   assert.equal(result.text.includes('#< CLIXML'), false)
   assert.equal(result.text.includes('<Objs'), false)
   assert.match(result.text, /hello-only/)
 })
 
 test('T-R-02 Write-Error is not wrapped in XML', { skip: process.platform !== 'win32' }, async () => {
-  const result = unwrap(await call(client, 'exec', {
+  const started = unwrap(await call(client, 'exec', {
     mode: 'shell',
     interpreter: 'powershell',
     script: "Write-Error 'boom'",
     timeout: 20000,
   }))
+  const result = await readUntil(client, started, (body) => /boom/.test(String(body.text ?? '')))
   assert.equal(result.text.includes('#< CLIXML'), false)
   assert.equal(result.text.includes('<Objs'), false)
   assert.match(result.text, /boom/)

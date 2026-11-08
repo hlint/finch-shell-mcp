@@ -842,7 +842,7 @@ created -> running +-> timeout (killed because ttl elapsed)
 Both of these are true:
 
 1. The process is alive.
-2. At least 1500 ms have passed since the last output, or since start if there has been none.
+2. At least 1500 ms have passed since the last output, or since the child process started if there has been none. Time spent before the process exists does not count.
 
 Whether stdin is open is not part of the decision. `job_send` decides whether a write is accepted: not `standing_by` is `E_NOT_INTERACTIVE`, and a closed stdin is `E_STDIN_CLOSED`.
 

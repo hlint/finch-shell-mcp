@@ -59,7 +59,7 @@ Detection order is in the contract. Codecs use `iconv-lite`. `TextDecoder` is us
 
 `argv` starts the program directly. A bare name is resolved on `PATH` only, not in the current directory.
 
-`shell` writes the script under `tmp` and leaves stdin for `job_send`. PowerShell uses a `.ps1` with a UTF-8 BOM, starts it with `-File`, and strips the CLIXML wrapper. `cmd` runs `chcp 65001` from an ASCII launcher, then calls the script saved as UTF-8. The command line itself is not used for the script, because cmd would convert it to the system code page first. The system code page is not changed.
+`shell` writes the script under `tmp` and leaves stdin for `job_send`. PowerShell uses a `.ps1` with a UTF-8 BOM, starts it with `-File`, and strips the CLIXML wrapper. Stdout and stderr are stripped separately, so an unfinished stderr record cannot discard stdout. Removed CLIXML still counts as activity for the 1500 ms quiet clock, and that clock starts when the process exists. `cmd` runs `chcp 65001` from an ASCII launcher, then calls the script saved as UTF-8. The command line itself is not used for the script, because cmd would convert it to the system code page first. The system code page is not changed.
 
 On POSIX the child is `detached` and becomes its own process group. Stopping a job closes stdin first. Windows uses `taskkill /T /F`. POSIX sends `SIGTERM` to the group, waits at most 5 seconds, then `SIGKILL`, and also signals every process that was in the tree before the kill. The process snapshot is cached. The cache is dropped before the result is checked. Zombies are not counted as survivors.
 

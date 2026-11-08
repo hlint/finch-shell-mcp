@@ -61,6 +61,25 @@ export function unwrap(body: ToolBody): Record<string, any> {
   return body.data ?? {}
 }
 
+const terminalStatus = new Set(['finished', 'failed', 'timeout', 'killed'])
+
+export async function readUntil(
+  client: Client,
+  body: Record<string, any>,
+  ready: (body: Record<string, any>) => boolean,
+  waitMs = 20_000,
+): Promise<Record<string, any>> {
+  const deadline = Date.now() + waitMs
+  let current = body
+  while (Date.now() < deadline) {
+    if (ready(current)) return current
+    if (terminalStatus.has(String(current.status))) return current
+    await delay(200)
+    current = unwrap(await call(client, 'job_read', { job_id: current.job_id, cursor: 0 }))
+  }
+  return current
+}
+
 export async function killPid(pid: number): Promise<void> {
   if (process.platform === 'win32') {
     await exec('taskkill', ['/F', '/T', '/PID', String(pid)]).catch(() => undefined)

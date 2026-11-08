@@ -74,11 +74,12 @@ interface Job {
   children: number
   retainUntil: number | null
   readAt: { char: number; byte: number }
-  decoder: StreamDecoder
-  clixml: ClixmlGate
+  outDecoder: StreamDecoder
+  errDecoder: StreamDecoder
+  outGate: ClixmlGate
+  errGate: ClixmlGate
   log: WriteStream | null
   timer: NodeJS.Timeout | null
-  decodeTimer: NodeJS.Timeout | null
   queue: Promise<void>
 }
 
@@ -180,6 +181,7 @@ class StreamDecoder {
   private pending = Buffer.alloc(0)
   charset: Charset | null = null
   lossy = false
+  timer: NodeJS.Timeout | null = null
   push(chunk: Buffer): string {
     this.pending = Buffer.concat([this.pending, chunk])
     if (!this.charset && !ready(this.pending)) return ''
@@ -253,10 +255,20 @@ async function appendText(job: Job, text: string): Promise<void> {
   await writeLog(job, text)
 }
 
-function emitText(job: Job, text: string, final = false): void {
-  const cleaned = job.clixml.push(text, final)
+function emitText(job: Job, gate: ClixmlGate, text: string, final = false): void {
+  // Removed CLIXML is not shown, but the process did write. That is not quiet.
+  if (text) {
+    job.lastOutputAt = Date.now()
+    if (!isTerminal(job.status)) job.status = 'running'
+  }
+  const cleaned = gate.push(text, final)
   if (!cleaned) return
   job.queue = job.queue.then(() => appendText(job, cleaned))
+}
+
+function noteStreams(job: Job): void {
+  job.encoding = job.outDecoder.charset ?? job.errDecoder.charset
+  job.lossy = job.outDecoder.lossy || job.errDecoder.lossy
 }
 
 function elapsedMs(job: Job): number {
@@ -303,8 +315,8 @@ function finish(job: Job, code: number | null, signal: NodeJS.Signals | null): v
   if (isTerminal(job.status)) return
   job.exitCode = code
   job.signal = signal
-  const flushed = job.decoder.flush()
-  emitText(job, flushed, true)
+  flushStream(job, job.outDecoder, job.outGate, true)
+  flushStream(job, job.errDecoder, job.errGate, true)
   void job.queue.then(async () => {
     await endLog(job)
     if (isTerminal(job.status)) return
@@ -313,8 +325,7 @@ function finish(job: Job, code: number | null, signal: NodeJS.Signals | null): v
     else if (code === 0) job.status = 'finished'
     else job.status = 'failed'
     job.retainUntil = Date.now() + RETAIN_MS
-    job.encoding = job.decoder.charset
-    job.lossy = job.decoder.lossy
+    noteStreams(job)
     settle(job)
   })
 }
@@ -386,11 +397,12 @@ export async function execJob(raw: unknown): Promise<Record<string, unknown>> {
     children: 0,
     retainUntil: null,
     readAt: { char: 0, byte: 0 },
-    decoder: new StreamDecoder(),
-    clixml: new ClixmlGate(),
+    outDecoder: new StreamDecoder(),
+    errDecoder: new StreamDecoder(),
+    outGate: new ClixmlGate(),
+    errGate: new ClixmlGate(),
     log: createWriteStream(logPath, { flags: 'a' }),
     timer: null,
-    decodeTimer: null,
     queue: Promise.resolve(),
   }
   mine.jobs.set(jobId, job)
@@ -408,6 +420,7 @@ export async function execJob(raw: unknown): Promise<Record<string, unknown>> {
   wire(job, child)
   try {
     await waitSpawn(child)
+    job.lastOutputAt = Date.now()
   } catch (error) {
     job.status = 'failed'
     job.retainUntil = Date.now() + RETAIN_MS
@@ -433,13 +446,16 @@ export async function execJob(raw: unknown): Promise<Record<string, unknown>> {
 }
 
 function wire(job: Job, child: ChildProcess): void {
-  const onChunk = (chunk: Buffer) => {
-    const text = job.decoder.push(chunk)
-    if (text) emitText(job, text)
-    if (!job.decoder.charset) scheduleDecode(job)
+  // Each pipe has its own decoder and CLIXML gate. An open stderr record must not swallow stdout.
+  const attach = (stream: NodeJS.ReadableStream | null, decoder: StreamDecoder, gate: ClixmlGate) => {
+    stream?.on('data', (chunk: Buffer) => {
+      const text = decoder.push(chunk)
+      if (text) emitText(job, gate, text)
+      if (!decoder.charset) scheduleDecode(job, decoder, gate)
+    })
   }
-  child.stdout?.on('data', onChunk)
-  child.stderr?.on('data', onChunk)
+  attach(child.stdout, job.outDecoder, job.outGate)
+  attach(child.stderr, job.errDecoder, job.errGate)
   child.on('error', () => {
     if (!isTerminal(job.status) && job.pid === null) {
       job.status = 'failed'
@@ -449,17 +465,23 @@ function wire(job: Job, child: ChildProcess): void {
   child.on('exit', (code, signal) => finish(job, code, signal))
 }
 
-function scheduleDecode(job: Job): void {
-  if (job.decodeTimer || job.decoder.charset) return
-  job.decodeTimer = setTimeout(() => {
-    job.decodeTimer = null
-    if (job.decoder.charset) return
-    const text = job.decoder.flush()
-    if (text) emitText(job, text)
-    job.encoding = job.decoder.charset
-    job.lossy = job.decoder.lossy
+function scheduleDecode(job: Job, decoder: StreamDecoder, gate: ClixmlGate): void {
+  if (decoder.timer || decoder.charset) return
+  decoder.timer = setTimeout(() => {
+    decoder.timer = null
+    if (decoder.charset) return
+    flushStream(job, decoder, gate, false)
+    noteStreams(job)
   }, 40)
-  job.decodeTimer.unref()
+  decoder.timer.unref()
+}
+
+function flushStream(job: Job, decoder: StreamDecoder, gate: ClixmlGate, final: boolean): void {
+  if (decoder.timer) {
+    clearTimeout(decoder.timer)
+    decoder.timer = null
+  }
+  emitText(job, gate, decoder.flush(), final)
 }
 
 function waitSpawn(child: ChildProcess): Promise<void> {
@@ -609,13 +631,13 @@ async function killJob(job: Job, grace: number): Promise<{ escalated: boolean; r
 }
 
 async function readView(job: Job, cursor: number, maxChars: number, summary: boolean): Promise<Record<string, unknown>> {
+  await job.queue
   refresh(job)
   const start = normalizeCursor(cursor, job.totalChars)
   const text = await sliceText(job, start, maxChars)
   const returned = countPoints(text)
   const cursorEnd = start + returned
-  job.encoding = job.decoder.charset
-  job.lossy = job.decoder.lossy
+  noteStreams(job)
   const body: Record<string, unknown> = {
     job_id: job.job_id,
     status: job.status,

@@ -1,4 +1,4 @@
-export const VERSION = '0.1.0'
+export const VERSION = '0.1.1'
 
 export const HASH_HEX_LEN = 6
 export const HASH_MAX_BYTES = 64 * 1024 * 1024

@@ -21,18 +21,18 @@ Node.js 22.18 or newer.
 
 This version is not on npm yet. Download the release tarball and install it globally:
 
-[hlint-finch-shell-mcp-0.1.0.tgz](https://github.com/hlint/finch-shell-mcp/releases/download/v0.1.0/hlint-finch-shell-mcp-0.1.0.tgz)
+[hlint-finch-shell-mcp-0.1.1.tgz](https://github.com/hlint/finch-shell-mcp/releases/download/v0.1.1/hlint-finch-shell-mcp-0.1.1.tgz)
 
 Linux:
 
 ```bash
-curl -fsSL -o hlint-finch-shell-mcp-0.1.0.tgz https://github.com/hlint/finch-shell-mcp/releases/download/v0.1.0/hlint-finch-shell-mcp-0.1.0.tgz && npm install -g ./hlint-finch-shell-mcp-0.1.0.tgz
+curl -fsSL -o hlint-finch-shell-mcp-0.1.1.tgz https://github.com/hlint/finch-shell-mcp/releases/download/v0.1.1/hlint-finch-shell-mcp-0.1.1.tgz && npm install -g ./hlint-finch-shell-mcp-0.1.1.tgz
 ```
 
 Windows (PowerShell):
 
 ```powershell
-Invoke-WebRequest -Uri https://github.com/hlint/finch-shell-mcp/releases/download/v0.1.0/hlint-finch-shell-mcp-0.1.0.tgz -OutFile hlint-finch-shell-mcp-0.1.0.tgz; npm install -g .\hlint-finch-shell-mcp-0.1.0.tgz
+Invoke-WebRequest -Uri https://github.com/hlint/finch-shell-mcp/releases/download/v0.1.1/hlint-finch-shell-mcp-0.1.1.tgz -OutFile hlint-finch-shell-mcp-0.1.1.tgz; npm install -g .\hlint-finch-shell-mcp-0.1.1.tgz
 ```
 
 That puts `finch-shell-mcp` on your PATH. Add this to an MCP client:
