@@ -1,0 +1,59 @@
+{
+  "name": "finch-shell-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for local files and shell jobs.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "filesystem",
+    "shell"
+  ],
+  "bin": {
+    "finch-shell-mcp": "dist/index.mjs"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prepare": "tsdown",
+    "start": "node --experimental-strip-types src/index.ts",
+    "start:http": "node --experimental-strip-types src/index.ts --http",
+    "test": "node --experimental-strip-types --test --test-timeout=180000 test/acceptance.test.ts test/clixml.test.ts test/http.test.ts test/restart.test.ts test/report.test.ts test/cases.test.ts",
+    "typecheck": "tsc --noEmit",
+    "pack": "npm run typecheck && npm pack",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hlint/finch-shell-mcp.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/hlint/finch-shell-mcp/issues"
+  },
+  "homepage": "https://github.com/hlint/finch-shell-mcp#readme",
+  "dependencies": {
+    "@modelcontextprotocol/node": "^2.1.2",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "iconv-lite": "^0.7.3",
+    "jschardet": "^4.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@types/iconv-lite": "^0.0.1",
+    "@types/node": "^26.6.6",
+    "tsdown": "^0.23.7",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
