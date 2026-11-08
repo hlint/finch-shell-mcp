@@ -1,5 +1,5 @@
 {
-  "name": "finch-shell-mcp",
+  "name": "@hlint/finch-shell-mcp",
   "version": "0.1.0",
   "description": "MCP server for local files and shell jobs.",
   "keywords": [
@@ -36,6 +36,9 @@
   },
   "author": "",
   "license": "ISC",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "bugs": {
     "url": "https://github.com/hlint/finch-shell-mcp/issues"

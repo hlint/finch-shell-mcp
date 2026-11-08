@@ -26,7 +26,7 @@ Add this to an MCP client:
   "mcpServers": {
     "finch-shell": {
       "command": "npx",
-      "args": ["-y", "finch-shell-mcp"]
+      "args": ["-y", "@hlint/finch-shell-mcp"]
     }
   }
 }
@@ -42,8 +42,8 @@ npx finch-shell-mcp
 HTTP:
 
 ```bash
-npx finch-shell-mcp --http
-npx finch-shell-mcp --http 0.0.0.0:8787
+npx @hlint/finch-shell-mcp --http
+npx @hlint/finch-shell-mcp --http 0.0.0.0:8787
 ```
 
 The default URL is `http://127.0.0.1:7331/mcp`. `--http 8787` changes only the port and still binds to loopback. `FINCH_SHELL_HTTP_HOST` and `FINCH_SHELL_HTTP_PORT` apply when no address is passed. `FINCH_TRANSPORT=http` also starts HTTP.
