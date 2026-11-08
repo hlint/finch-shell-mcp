@@ -19,14 +19,29 @@ Node.js 22.18 or newer.
 
 ## Quick start
 
-Add this to an MCP client:
+This version is not on npm yet. Download the release tarball and install it globally:
+
+[hlint-finch-shell-mcp-0.1.0.tgz](https://github.com/hlint/finch-shell-mcp/releases/download/v0.1.0/hlint-finch-shell-mcp-0.1.0.tgz)
+
+Linux:
+
+```bash
+curl -fsSL -o hlint-finch-shell-mcp-0.1.0.tgz https://github.com/hlint/finch-shell-mcp/releases/download/v0.1.0/hlint-finch-shell-mcp-0.1.0.tgz && npm install -g ./hlint-finch-shell-mcp-0.1.0.tgz
+```
+
+Windows (PowerShell):
+
+```powershell
+Invoke-WebRequest -Uri https://github.com/hlint/finch-shell-mcp/releases/download/v0.1.0/hlint-finch-shell-mcp-0.1.0.tgz -OutFile hlint-finch-shell-mcp-0.1.0.tgz; npm install -g .\hlint-finch-shell-mcp-0.1.0.tgz
+```
+
+That puts `finch-shell-mcp` on your PATH. Add this to an MCP client:
 
 ```json
 {
   "mcpServers": {
     "finch-shell": {
-      "command": "npx",
-      "args": ["-y", "@hlint/finch-shell-mcp"]
+      "command": "finch-shell-mcp"
     }
   }
 }
@@ -42,8 +57,8 @@ npx finch-shell-mcp
 HTTP:
 
 ```bash
-npx @hlint/finch-shell-mcp --http
-npx @hlint/finch-shell-mcp --http 0.0.0.0:8787
+finch-shell-mcp --http
+finch-shell-mcp --http 0.0.0.0:8787
 ```
 
 The default URL is `http://127.0.0.1:7331/mcp`. `--http 8787` changes only the port and still binds to loopback. `FINCH_SHELL_HTTP_HOST` and `FINCH_SHELL_HTTP_PORT` apply when no address is passed. `FINCH_TRANSPORT=http` also starts HTTP.
